@@ -10,18 +10,12 @@
 
     <style>
         :root {
-            --bg-color: #f1f5f9;
-            --sidebar-bg: #1e293b;
-            --sidebar-hover: #334155;
-            --primary: #2563eb;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --text-dark: #1e293b;
-            --card-bg: #ffffff;
+            --bg-color: #f1f5f9; --sidebar-bg: #1e293b; --sidebar-hover: #334155;
+            --primary: #2563eb; --success: #10b981; --warning: #f59e0b;
+            --danger: #ef4444; --text-dark: #1e293b; --card-bg: #ffffff;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
         body { display: flex; height: 100vh; background-color: var(--bg-color); color: var(--text-dark); overflow: hidden; }
 
         .sidebar { width: 260px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; transition: 0.3s; z-index: 1000; }
@@ -38,7 +32,6 @@
         .top-navbar h3 { color: var(--primary); }
 
         .content-area { padding: 20px; flex: 1; }
-        
         .admin-section { display: none; animation: fadeIn 0.4s; }
         .admin-section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -48,7 +41,7 @@
         
         .input-group { margin-bottom: 15px; }
         .input-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #475569; font-size: 0.9rem; }
-        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background: #f8fafc; font-size: 0.95rem; transition: 0.3s; }
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background: #f8fafc; font-size: 0.95rem; }
         input:focus, textarea:focus, select:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
 
         .btn { padding: 12px 20px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 1rem; width: 100%; color: white; }
@@ -63,9 +56,11 @@
         .user-details { flex: 1; min-width: 200px; }
         .user-name { font-size: 1.1rem; font-weight: bold; color: var(--primary); }
         .user-info { font-size: 0.85rem; color: #64748b; margin-top: 5px; }
-        .user-actions { display: flex; gap: 10px; align-items: center; }
-        .status-select { padding: 8px; border-radius: 5px; border: 2px solid #cbd5e1; font-weight: bold; width: auto; }
         .btn-update { padding: 8px 15px; background: var(--warning); color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+
+        .chat-msg { margin-bottom: 10px; padding: 10px; border-radius: 8px; max-width: 80%; }
+        .chat-me { background: var(--primary); color: white; margin-left: auto; border-bottom-right-radius: 0; }
+        .chat-other { background: #e2e8f0; color: #1e293b; margin-right: auto; border-bottom-left-radius: 0; }
 
         .mobile-toggle { display: none; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--primary); }
         @media (max-width: 768px) {
@@ -80,32 +75,28 @@
 
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <span style="font-size: 2.5rem;">⚙️</span>
-            <h2>Admin Panel</h2>
+            <span style="font-size: 2.5rem;">⚙️</span><h2>IES Admin</h2>
         </div>
         <div class="menu-items">
             <button class="menu-btn active" onclick="switchSection('dashboard-sec', this); closeMobileMenu();">📊 ড্যাশবোর্ড ও ইউজার</button>
             <button class="menu-btn" onclick="switchSection('news-sec', this); closeMobileMenu();">📢 নিউজ ও সাকসেস পোস্ট</button>
+            <button class="menu-btn" onclick="switchSection('chat-sec', this); closeMobileMenu();" id="menu-btn-chat">💬 পার্সোনাল মেসেজ</button>
             <button class="menu-btn" onclick="switchSection('details-sec', this); closeMobileMenu();">📄 ডিটেইলস পেজ এডিট</button>
         </div>
     </div>
 
     <div class="main-content">
-        
         <div class="top-navbar">
             <button class="mobile-toggle" onclick="toggleMobileMenu()">☰</button>
-            <h3>Education Hub</h3>
+            <h3>IES Admin</h3>
             <span style="background: #e0e7ff; color: #2563eb; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">Super Admin</span>
         </div>
 
         <div class="content-area">
 
             <div id="dashboard-sec" class="admin-section active">
-                <div class="stat-box">
-                    <h3>মোট রেজিস্টার্ড ইউজার</h3>
-                    <h1 id="total-users-count">0</h1>
-                </div>
-
+                <div class="stat-box"><h3>মোট রেজিস্টার্ড ইউজার</h3><h1 id="total-users-count">0</h1></div>
+                
                 <div class="card" style="text-align: center; border: 2px dashed #ef4444; background: #fef2f2;">
                     <h4 style="color: #dc2626; margin-bottom: 10px;">🗑️ অটো-ক্লিনআপ সিস্টেম</h4>
                     <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 15px;">এটি ক্লিক করলে ৩ দিনের বেশি পুরনো সকল হোম পোস্ট, নিউজ এবং গ্লোবাল চ্যাট ডিলিট হয়ে ফায়ারবেস স্টোরেজ খালি হবে।</p>
@@ -114,9 +105,7 @@
 
                 <div class="card">
                     <div class="card-header">👥 সকল ইউজার লিস্ট ও স্ট্যাটাস আপডেট</div>
-                    <div id="users-container">
-                        <p style="text-align: center; color: gray;">ইউজার ডাটা লোড হচ্ছে...</p>
-                    </div>
+                    <div id="users-container"><p style="text-align: center; color: gray;">ইউজার ডাটা লোড হচ্ছে...</p></div>
                 </div>
             </div>
 
@@ -125,8 +114,13 @@
                     <div class="card-header">🚀 নতুন নিউজ বা ভিসা সাকসেস বোর্ড তৈরি করুন</div>
                     
                     <div class="input-group">
-                        <label>অ্যানিমেটেড হেডলাইন (টিভি স্ক্রলের মতো চলবে):</label>
-                        <input type="text" id="news-headline" placeholder="যেমন: আলহামদুলিল্লাহ! ৩ জনের স্টুডেন্ট ভিসা সম্পন্ন...">
+                        <label>অ্যানিমেটেড হেডলাইন (টিভি স্ক্রল):</label>
+                        <input type="text" id="news-headline" placeholder="যেমন: আলহামদুলিল্লাহ! ৩ জনের ভিসা সম্পন্ন...">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label style="color: #ea4335;">🔥 ঘূর্ণায়মান অফার ব্যাজ (অ্যানিমেশন):</label>
+                        <input type="text" id="news-offer-badge" placeholder="যেমন: 50% Off / ফ্রি অফার!">
                     </div>
 
                     <div class="input-group">
@@ -140,13 +134,13 @@
                     </div>
 
                     <div style="background: #f8fafc; border: 2px dashed #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4 style="color: #2563eb; margin-bottom: 10px; text-align: center;">ভিসা সাকসেস ছবি (৩ থেকে ১২ জন)</h4>
+                        <h4 style="color: #2563eb; margin-bottom: 10px; text-align: center;">ভিসা সাকসেস ছবি (৩-১২ জন)</h4>
                         <div id="student-inputs"></div>
-                        <button onclick="addStudentField()" style="width: 100%; padding: 10px; background: #e2e8f0; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; color: #333;">➕ আরও একজন স্টুডেন্ট যুক্ত করুন</button>
+                        <button onclick="addStudentField()" style="width: 100%; padding: 10px; background: #e2e8f0; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px;">➕ আরও একজন স্টুডেন্ট যুক্ত করুন</button>
                     </div>
 
                     <div class="input-group">
-                        <label style="color: #ef4444;">অথবা, শুধু সাধারণ একটি ছবি (যদি সাকসেস বোর্ড না চান):</label>
+                        <label style="color: #ef4444;">অথবা, শুধু সাধারণ একটি ছবি (সাকসেস বোর্ড না চাইলে):</label>
                         <input type="file" id="news-single-image" accept="image/*">
                     </div>
 
@@ -154,9 +148,22 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-header" style="color: #ef4444;">🗑️ পূর্বের নিউজ ও সাকসেস পোস্ট মুছুন</div>
-                    <div id="admin-news-list">
-                        <p style="text-align: center; color: gray;">নিউজ লিস্ট লোড হচ্ছে...</p>
+                    <div class="card-header" style="color: #ef4444;">💬 পূর্বের নিউজ, কমেন্ট ও রিপ্লাই দিন</div>
+                    <div id="admin-news-list"><p style="text-align: center; color: gray;">লোড হচ্ছে...</p></div>
+                </div>
+            </div>
+
+            <div id="chat-sec" class="admin-section">
+                <div class="card" style="height: 80vh; display: flex; flex-direction: column;">
+                    <div class="card-header" id="chat-header-name">💬 চ্যাট করার জন্য ড্যাশবোর্ড থেকে ইউজার সিলেক্ট করুন</div>
+                    
+                    <div id="admin-chat-messages" style="flex:1; background:#f8fafc; border-radius:8px; padding:15px; overflow-y:auto; border:1px solid #e2e8f0; margin-bottom:15px;">
+                        <p style="text-align:center; color:gray; margin-top:20px;">কোনো মেসেজ নেই।</p>
+                    </div>
+                    
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="admin-chat-input" placeholder="ইউজারকে মেসেজ লিখুন..." style="margin-bottom:0;">
+                        <button class="btn btn-primary" style="width:auto;" onclick="sendAdminMessage()">Send</button>
                     </div>
                 </div>
             </div>
@@ -164,40 +171,14 @@
             <div id="details-sec" class="admin-section">
                 <div class="card">
                     <div class="card-header">📄 Details পেজের তথ্য পরিবর্তন করুন</div>
-                    
-                    <div class="input-group">
-                        <label>🔥 স্ক্রলিং নোটিশ:</label>
-                        <input type="text" id="det-notice">
-                    </div>
-                    <div class="input-group">
-                        <label>🎓 Bachelors ডকুমেন্টস (নতুন লাইনের জন্য &lt;br&gt; দিন):</label>
-                        <textarea id="det-bach" rows="3"></textarea>
-                    </div>
-                    <div class="input-group">
-                        <label>🎓 Masters ডকুমেন্টস:</label>
-                        <textarea id="det-mast" rows="3"></textarea>
-                    </div>
-                    <div class="input-group">
-                        <label>🏆 Scholarship ডকুমেন্টস:</label>
-                        <textarea id="det-schol" rows="3"></textarea>
-                    </div>
-                    <div class="input-group">
-                        <label>📘 Facebook Page Link:</label>
-                        <input type="url" id="det-fb">
-                    </div>
-                    <div class="input-group">
-                        <label>📧 Contact Email:</label>
-                        <input type="email" id="det-email">
-                    </div>
-                    <div class="input-group">
-                        <label>© Copyright Text:</label>
-                        <input type="text" id="det-copy">
-                    </div>
-                    <div class="input-group">
-                        <label>📍 Office Address:</label>
-                        <input type="text" id="det-address">
-                    </div>
-
+                    <div class="input-group"><label>🔥 স্ক্রলিং নোটিশ:</label><input type="text" id="det-notice"></div>
+                    <div class="input-group"><label>🎓 Bachelors ডকুমেন্টস (নতুন লাইনের জন্য &lt;br&gt; দিন):</label><textarea id="det-bach" rows="3"></textarea></div>
+                    <div class="input-group"><label>🎓 Masters ডকুমেন্টস:</label><textarea id="det-mast" rows="3"></textarea></div>
+                    <div class="input-group"><label>🏆 Scholarship ডকুমেন্টস:</label><textarea id="det-schol" rows="3"></textarea></div>
+                    <div class="input-group"><label>📘 Facebook Page Link:</label><input type="url" id="det-fb"></div>
+                    <div class="input-group"><label>📧 Contact Email:</label><input type="email" id="det-email"></div>
+                    <div class="input-group"><label>© Copyright Text:</label><input type="text" id="det-copy"></div>
+                    <div class="input-group"><label>📍 Office Address:</label><input type="text" id="det-address"></div>
                     <button class="btn btn-primary" id="btn-save-details" onclick="saveDetails()">💾 আপডেট সেভ করুন</button>
                 </div>
             </div>
@@ -207,38 +188,42 @@
 
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyDF7Ago1vKNenaTC5f9tLiwGSilKs4e2e8",
-            authDomain: "education-hub-0.firebaseapp.com",
-            projectId: "education-hub-0",
-            storageBucket: "education-hub-0.firebasestorage.app",
-            messagingSenderId: "803390476576",
-            appId: "1:803390476576:web:0669720d9bda4104c44745",
-            measurementId: "G-CF9HSF3J11"
+            apiKey: "AIzaSyDF7Ago1vKNenaTC5f9tLiwGSilKs4e2e8", authDomain: "education-hub-0.firebaseapp.com",
+            projectId: "education-hub-0", storageBucket: "education-hub-0.firebasestorage.app",
+            messagingSenderId: "803390476576", appId: "1:803390476576:web:0669720d9bda4104c44745", measurementId: "G-CF9HSF3J11"
         };
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
 
-        // ট্যাব পরিবর্তন লজিক
+        // অ্যাডমিন একাউন্ট ক্রিয়েট (যেন মেইন অ্যাপে অ্যাডমিনকে সবাই দেখতে পায়)
+        db.collection("users").doc("admin_account").set({
+            name: "IES Admin", phone: "admin", pic: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png", status: "Admin", timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        }, {merge: true});
+
         function switchSection(secId, btnElement) {
             document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(secId).classList.add('active');
-            btnElement.classList.add('active');
+            if(btnElement) btnElement.classList.add('active');
         }
 
         function toggleMobileMenu() { document.getElementById('sidebar').classList.toggle('show'); }
         function closeMobileMenu() { if(window.innerWidth <= 768) { document.getElementById('sidebar').classList.remove('show'); } }
 
-        // ১. ড্যাশবোর্ড ও ইউজার ম্যানেজমেন্ট
+        // ================= ১. ড্যাশবোর্ড ও চ্যাট সিস্টেম =================
         function loadAdminUsers() {
             db.collection("users").orderBy("timestamp", "desc").onSnapshot(snapshot => {
-                document.getElementById('total-users-count').innerText = snapshot.size;
-                const container = document.getElementById('users-container');
+                let total = 0;
+                const container = document.getElementById('users-container'); 
                 container.innerHTML = '';
+                
                 if(snapshot.empty) { container.innerHTML = '<p>কোনো ইউজার নেই।</p>'; return; }
 
                 snapshot.forEach(doc => {
                     const u = doc.data();
+                    if(u.phone === "admin") return; // অ্যাডমিনকে লিস্টে দেখাবো না
+                    total++;
+                    
                     let sColor = '#f59e0b';
                     if(u.status === 'Work') sColor = '#2563eb';
                     else if(u.status === 'Student') sColor = '#10b981';
@@ -261,10 +246,12 @@
                                     <option value="Scholarship project" ${u.status==='Scholarship project'?'selected':''}>Scholarship project</option>
                                 </select>
                                 <button class="btn-update" onclick="updateStatus('${doc.id}')">Update</button>
+                                <button class="btn-primary" style="padding: 8px; border-radius:5px; border:none; cursor:pointer;" onclick="openAdminChat('${u.phone}', '${u.name}')">💬</button>
                             </div>
                         </div>
                     `;
                 });
+                document.getElementById('total-users-count').innerText = total;
             });
         }
 
@@ -274,7 +261,7 @@
             alert(`✅ স্ট্যাটাস দ্রুত "${newStatus}" তে আপডেট হয়েছে!`);
         }
 
-        // ২. অটো-ক্লিনআপ সিস্টেম (৩ দিনের পুরনো ডাটা ডিলিট)
+        // অটো-ক্লিনআপ সিস্টেম
         async function deleteOldData() {
             const btn = document.getElementById('btn-cleanup');
             const originalText = btn.innerText;
@@ -312,7 +299,165 @@
             }
         }
 
-        // ৩. ডিটেইলস পেজ লজিক
+        // ================= চ্যাট লজিক =================
+        let currentChatPhone = null;
+        function getChatId(phone1, phone2) { return phone1 > phone2 ? phone1 + "_" + phone2 : phone2 + "_" + phone1; }
+
+        function openAdminChat(userPhone, userName) {
+            currentChatPhone = userPhone;
+            document.getElementById('chat-header-name').innerText = `💬 চ্যাট: ${userName} (${userPhone})`;
+            switchSection('chat-sec', document.getElementById('menu-btn-chat'));
+            
+            const chatId = getChatId("admin", userPhone);
+            db.collection("private_chats").doc(chatId).collection("messages").orderBy("timestamp", "asc").onSnapshot((snapshot) => {
+                const box = document.getElementById('admin-chat-messages'); box.innerHTML = '';
+                if(snapshot.empty) { box.innerHTML = '<p style="text-align:center; color:gray;">কোনো মেসেজ নেই।</p>'; return; }
+                
+                snapshot.forEach((docSnap) => {
+                    const msg = docSnap.data();
+                    const isMe = msg.sender === "admin";
+                    box.innerHTML += `<div class="chat-msg ${isMe ? 'chat-me' : 'chat-other'}">${msg.text}</div>`;
+                });
+                box.scrollTop = box.scrollHeight;
+            });
+        }
+
+        function sendAdminMessage() {
+            if(!currentChatPhone) return alert("আগে ড্যাশবোর্ড থেকে একজন ইউজার সিলেক্ট করুন!");
+            const input = document.getElementById('admin-chat-input');
+            if(!input.value) return;
+            const chatId = getChatId("admin", currentChatPhone);
+            db.collection("private_chats").doc(chatId).collection("messages").add({
+                sender: "admin", text: input.value, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            input.value = '';
+        }
+
+        // ================= ২. নিউজ আপলোড =================
+        let stdCount = 0;
+        function addStudentField() {
+            if(stdCount >= 12) return alert("সর্বোচ্চ ১২ জন দেওয়া যাবে!");
+            stdCount++;
+            const div = document.createElement('div');
+            div.style.display = "flex"; div.style.gap = "10px"; div.style.marginBottom = "10px";
+            div.innerHTML = `<input type="file" id="pic-${stdCount}" accept="image/*" style="width:50%;"><input type="text" id="name-${stdCount}" placeholder="নাম" style="width:50%;">`;
+            document.getElementById('student-inputs').appendChild(div);
+        }
+
+        const compressImageAdmin = (file) => {
+            return new Promise((resolve) => {
+                const r = new FileReader(); r.onload = e => {
+                    const img = new Image(); img.onload = () => {
+                        const canvas = document.createElement('canvas'); const scale = 400 / img.width;
+                        canvas.width = 400; canvas.height = img.height * scale;
+                        const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.8));
+                    }; img.src = e.target.result;
+                }; r.readAsDataURL(file);
+            });
+        };
+
+        async function publishNews() {
+            const btn = document.getElementById('btn-post-news');
+            btn.innerText = "আপলোড হচ্ছে... ⏳"; btn.disabled = true;
+
+            try {
+                let students = [];
+                for(let i=1; i<=stdCount; i++) {
+                    const fInput = document.getElementById(`pic-${i}`); const nInput = document.getElementById(`name-${i}`);
+                    if(fInput && fInput.files && fInput.files[0]) {
+                        students.push({ pic: await compressImageAdmin(fInput.files[0]), name: nInput.value || "Student" });
+                    }
+                }
+
+                const singleFile = document.getElementById('news-single-image');
+                let singleImg = null; if(singleFile && singleFile.files[0]) singleImg = await compressImageAdmin(singleFile.files[0]);
+
+                const details = document.getElementById('news-details').value;
+                const headline = document.getElementById('news-headline').value;
+                const centerText = document.getElementById('news-center-text').value;
+                const offerBadge = document.getElementById('news-offer-badge').value; // ঘূর্ণায়মান অফার
+
+                if(students.length === 0 && !singleImg && !details && !headline) {
+                    alert('তথ্য দিন!'); btn.innerText = "🚀 পাবলিশ করুন"; btn.disabled = false; return;
+                }
+
+                // এখানে নাম IES করা হলো
+                const newsData = {
+                    authorName: "IES",
+                    authorPhone: "admin", 
+                    authorPic: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+                    timeString: new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute:'2-digit', hour12: true }),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    isAdminPost: true, likedBy: [], comments: [],
+                    headline: headline, centerText: centerText, details: details, students: students, postImage: singleImg,
+                    offerBadge: offerBadge 
+                };
+
+                await db.collection("news").add(newsData);
+                btn.innerText = "✅ সফলভাবে পাবলিশ হয়েছে!"; btn.style.background = "var(--success)";
+                setTimeout(() => location.reload(), 1500);
+
+            } catch(error) { alert("Error: " + error.message); btn.disabled = false; }
+        }
+
+        // ================= ৩. কমেন্ট দেখা এবং রিপ্লাই দেওয়া =================
+        function loadAdminNewsList() {
+            db.collection("news").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+                const list = document.getElementById('admin-news-list'); list.innerHTML = '';
+                if(snapshot.empty) { list.innerHTML = '<p style="color:gray;text-align:center;">কোনো পোস্ট নেই।</p>'; return; }
+
+                snapshot.forEach(doc => {
+                    const n = doc.data();
+                    let commentsHTML = '';
+                    if(n.comments && n.comments.length > 0) {
+                        n.comments.forEach(c => {
+                            commentsHTML += `<div style="background:#f1f5f9; padding:8px; margin-top:5px; border-radius:5px; font-size:0.85rem;"><strong>${c.authorName}:</strong> ${c.text}</div>`;
+                        });
+                    }
+
+                    list.innerHTML += `
+                        <div class="user-card" style="border-left: 4px solid var(--danger); margin-bottom: 15px; display:block;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <div style="flex:1;">
+                                    <strong style="color: #333;">${(n.headline || n.details || "📷 ছবি পোস্ট").substring(0, 60)}...</strong>
+                                    <div style="font-size: 0.8rem; color: gray;">🕒 ${n.timeString}</div>
+                                </div>
+                                <button class="btn-update" style="background: var(--danger); color: white;" onclick="deleteNewsPost('${doc.id}')">ডিলিট পোস্ট</button>
+                            </div>
+                            
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #cbd5e1;">
+                                <h4 style="font-size:0.9rem; color:#2563eb; margin-bottom:5px;">💬 ইউজার কমেন্টস:</h4>
+                                ${commentsHTML || '<span style="font-size:0.8rem; color:gray;">কোনো কমেন্ট নেই</span>'}
+                                
+                                <div style="display:flex; gap:5px; margin-top:10px;">
+                                    <input type="text" id="reply-${doc.id}" placeholder="অ্যাডমিন রিপ্লাই দিন..." style="padding:8px; border-radius:5px; flex:1;">
+                                    <button class="btn-primary" style="width:auto; padding:8px 15px; border-radius:5px;" onclick="addAdminReply('${doc.id}')">Reply</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function addAdminReply(docId) {
+            const input = document.getElementById(`reply-${docId}`);
+            if(!input.value) return;
+            db.collection("news").doc(docId).update({
+                comments: firebase.firestore.FieldValue.arrayUnion({
+                    authorName: "IES Admin", authorPic: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png", text: input.value
+                })
+            });
+            input.value = '';
+            alert("✅ রিপ্লাই সফলভাবে দেওয়া হয়েছে!");
+        }
+
+        function deleteNewsPost(docId) {
+            if(confirm('পোস্টটি ডিলিট করবেন?')) db.collection("news").doc(docId).delete();
+        }
+
+        // ================= ৪. ডিটেইলস সেভ ও লোড =================
         function loadDetails() {
             db.collection("admin_settings").doc("detailsConfig").onSnapshot(doc => {
                 if(doc.exists) {
@@ -347,133 +492,9 @@
             setTimeout(()=> { btn.innerText = "💾 আপডেট সেভ করুন"; btn.style.background = "var(--primary)"; }, 2000);
         }
 
-        // ৪. নিউজ ও ভিসা সাকসেস লজিক
-        let stdCount = 0;
-        function addStudentField() {
-            if(stdCount >= 12) return alert("সর্বোচ্চ ১২ জন দেওয়া যাবে!");
-            stdCount++;
-            const div = document.createElement('div');
-            div.style.display = "flex"; div.style.gap = "10px"; div.style.marginBottom = "10px";
-            div.innerHTML = `
-                <input type="file" id="pic-${stdCount}" accept="image/*" style="width:50%; background:white;">
-                <input type="text" id="name-${stdCount}" placeholder="স্টুডেন্টের নাম" style="width:50%;">
-            `;
-            document.getElementById('student-inputs').appendChild(div);
-        }
-
-        const compressImageAdmin = (file) => {
-            return new Promise((resolve) => {
-                const r = new FileReader();
-                r.onload = e => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const maxW = 400; // HD quality yet small size
-                        const scale = maxW / img.width;
-                        canvas.width = maxW; 
-                        canvas.height = img.height * scale;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.8));
-                    };
-                    img.src = e.target.result;
-                };
-                r.readAsDataURL(file);
-            });
-        };
-
-        async function publishNews() {
-            const btn = document.getElementById('btn-post-news');
-            btn.innerText = "আপলোড হচ্ছে... দয়া করে অপেক্ষা করুন ⏳"; 
-            btn.disabled = true; btn.style.background = "#6b7280";
-
-            try {
-                let students = [];
-                for(let i=1; i<=stdCount; i++) {
-                    const fileInput = document.getElementById(`pic-${i}`);
-                    const nameInput = document.getElementById(`name-${i}`);
-                    if(fileInput && fileInput.files && fileInput.files[0]) {
-                        const picBase64 = await compressImageAdmin(fileInput.files[0]);
-                        const sName = nameInput.value ? nameInput.value : "Student";
-                        students.push({ pic: picBase64, name: sName });
-                    }
-                }
-
-                const singleFile = document.getElementById('news-single-image');
-                let singleImgBase64 = null;
-                if(singleFile && singleFile.files && singleFile.files[0]) {
-                    singleImgBase64 = await compressImageAdmin(singleFile.files[0]);
-                }
-
-                const details = document.getElementById('news-details').value;
-                const headline = document.getElementById('news-headline').value;
-                const centerText = document.getElementById('news-center-text').value;
-                
-                if(students.length === 0 && !singleImgBase64 && !details && !headline) {
-                    alert('দয়া করে কিছু তথ্য দিন!'); 
-                    btn.innerText = "🚀 পাবলিশ করুন"; btn.disabled = false; btn.style.background = "var(--success)";
-                    return;
-                }
-
-                const newsData = {
-                    authorName: "Education Hub",
-                    authorPic: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-                    timeString: new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute:'2-digit', hour12: true }) + " (Admin)",
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    isAdminPost: true, likedBy: [], comments: [],
-                    headline: headline, centerText: centerText, details: details, students: students, postImage: singleImgBase64
-                };
-
-                await db.collection("news").add(newsData);
-                btn.innerText = "✅ সফলভাবে পাবলিশ হয়েছে!";
-                btn.style.background = "var(--success)";
-                setTimeout(() => location.reload(), 1500);
-
-            } catch(error) {
-                alert("Error: " + error.message);
-                btn.innerText = "🚀 পাবলিশ করুন"; btn.disabled = false; btn.style.background = "var(--success)";
-            }
-        }
-
-        // ৫. নিউজ লিস্ট লোড ও ডিলিট করা
-        function loadAdminNewsList() {
-            db.collection("news").orderBy("timestamp", "desc").onSnapshot(snapshot => {
-                const list = document.getElementById('admin-news-list');
-                if(!list) return;
-                list.innerHTML = '';
-                
-                if(snapshot.empty) { list.innerHTML = '<p style="text-align:center; color:gray;">কোনো নিউজ পোস্ট নেই।</p>'; return; }
-
-                snapshot.forEach(doc => {
-                    const n = doc.data();
-                    const titleText = n.headline || n.details || "📷 ছবি / ভিসা সাকসেস পোস্ট";
-                    list.innerHTML += `
-                        <div class="user-card" style="border-left: 4px solid var(--danger); margin-bottom: 10px;">
-                            <div class="user-details" style="flex:1;">
-                                <strong style="color: #333; font-size:0.95rem;">${titleText.substring(0, 50)}...</strong>
-                                <div style="font-size: 0.8rem; color: gray; margin-top:5px;">🕒 ${n.timeString}</div>
-                            </div>
-                            <button class="btn-update" style="background: var(--danger); color: white;" onclick="deleteNewsPost('${doc.id}')">ডিলিট</button>
-                        </div>
-                    `;
-                });
-            });
-        }
-
-        function deleteNewsPost(docId) {
-            if(confirm('আপনি কি নিশ্চিত এই নিউজটি ডিলিট করবেন? ডিলিট করলে আর ফেরত পাওয়া যাবে না!')) {
-                db.collection("news").doc(docId).delete()
-                .then(() => alert('✅ নিউজটি সফলভাবে ডিলিট হয়েছে!'))
-                .catch(e => alert('Error: ' + e.message));
-            }
-        }
-
-        // পেজ লোড হলে ফাংশনগুলো রান করবে
         window.onload = () => { 
             addStudentField(); addStudentField(); addStudentField(); 
-            loadAdminUsers(); 
-            loadDetails(); 
-            loadAdminNewsList();
+            loadAdminUsers(); loadAdminNewsList(); loadDetails();
         };
     </script>
 </body>
