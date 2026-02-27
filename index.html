@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Education Hub</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f1f5f9;
+            --sidebar-bg: #1e293b;
+            --sidebar-hover: #334155;
+            --primary: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-dark: #1e293b;
+            --card-bg: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; height: 100vh; background-color: var(--bg-color); color: var(--text-dark); overflow: hidden; }
+
+        .sidebar { width: 260px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; transition: 0.3s; z-index: 1000; }
+        .sidebar-header { padding: 20px; text-align: center; border-bottom: 1px solid #334155; }
+        .sidebar-header h2 { font-size: 1.2rem; color: #38bdf8; margin-top: 10px; }
+        
+        .menu-items { flex: 1; padding-top: 10px; overflow-y: auto; }
+        .menu-btn { width: 100%; padding: 15px 20px; text-align: left; background: none; border: none; color: #cbd5e1; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; border-left: 4px solid transparent; }
+        .menu-btn:hover { background-color: var(--sidebar-hover); color: white; }
+        .menu-btn.active { background-color: var(--sidebar-hover); color: #38bdf8; border-left: 4px solid #38bdf8; }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; }
+        .top-navbar { background: white; padding: 15px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+        .top-navbar h3 { color: var(--primary); }
+
+        .content-area { padding: 20px; flex: 1; }
+        
+        .admin-section { display: none; animation: fadeIn 0.4s; }
+        .admin-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e2e8f0; }
+        .card-header { font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; color: var(--sidebar-bg); border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #475569; font-size: 0.9rem; }
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background: #f8fafc; font-size: 0.95rem; transition: 0.3s; }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+        .btn { padding: 12px 20px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 1rem; width: 100%; color: white; }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--danger); }
+        
+        .stat-box { background: linear-gradient(135deg, #38bdf8, #2563eb); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(37,99,235,0.3); }
+        .stat-box h1 { font-size: 2.5rem; margin: 10px 0 0 0; }
+        
+        .user-card { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+        .user-details { flex: 1; min-width: 200px; }
+        .user-name { font-size: 1.1rem; font-weight: bold; color: var(--primary); }
+        .user-info { font-size: 0.85rem; color: #64748b; margin-top: 5px; }
+        .user-actions { display: flex; gap: 10px; align-items: center; }
+        .status-select { padding: 8px; border-radius: 5px; border: 2px solid #cbd5e1; font-weight: bold; width: auto; }
+        .btn-update { padding: 8px 15px; background: var(--warning); color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+
+        .mobile-toggle { display: none; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--primary); }
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { position: fixed; left: -260px; height: 100vh; box-shadow: 2px 0 10px rgba(0,0,0,0.2); }
+            .sidebar.show { left: 0; }
+            .mobile-toggle { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <span style="font-size: 2.5rem;">⚙️</span>
+            <h2>Admin Panel</h2>
+        </div>
+        <div class="menu-items">
+            <button class="menu-btn active" onclick="switchSection('dashboard-sec', this); closeMobileMenu();">📊 ড্যাশবোর্ড ও ইউজার</button>
+            <button class="menu-btn" onclick="switchSection('news-sec', this); closeMobileMenu();">📢 নিউজ ও সাকসেস পোস্ট</button>
+            <button class="menu-btn" onclick="switchSection('details-sec', this); closeMobileMenu();">📄 ডিটেইলস পেজ এডিট</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        
+        <div class="top-navbar">
+            <button class="mobile-toggle" onclick="toggleMobileMenu()">☰</button>
+            <h3>Education Hub</h3>
+            <span style="background: #e0e7ff; color: #2563eb; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">Super Admin</span>
+        </div>
+
+        <div class="content-area">
+
+            <div id="dashboard-sec" class="admin-section active">
+                <div class="stat-box">
+                    <h3>মোট রেজিস্টার্ড ইউজার</h3>
+                    <h1 id="total-users-count">0</h1>
+                </div>
+
+                <div class="card" style="text-align: center; border: 2px dashed #ef4444; background: #fef2f2;">
+                    <h4 style="color: #dc2626; margin-bottom: 10px;">🗑️ অটো-ক্লিনআপ সিস্টেম</h4>
+                    <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 15px;">এটি ক্লিক করলে ৩ দিনের বেশি পুরনো সকল হোম পোস্ট, নিউজ এবং গ্লোবাল চ্যাট ডিলিট হয়ে ফায়ারবেস স্টোরেজ খালি হবে।</p>
+                    <button class="btn btn-danger" id="btn-cleanup" onclick="deleteOldData()">🧹 ৩ দিনের পুরনো ডাটা মুছুন</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">👥 সকল ইউজার লিস্ট ও স্ট্যাটাস আপডেট</div>
+                    <div id="users-container">
+                        <p style="text-align: center; color: gray;">ইউজার ডাটা লোড হচ্ছে...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="news-sec" class="admin-section">
+                <div class="card">
+                    <div class="card-header">🚀 নতুন নিউজ বা ভিসা সাকসেস বোর্ড তৈরি করুন</div>
+                    
+                    <div class="input-group">
+                        <label>অ্যানিমেটেড হেডলাইন (টিভি স্ক্রলের মতো চলবে):</label>
+                        <input type="text" id="news-headline" placeholder="যেমন: আলহামদুলিল্লাহ! ৩ জনের স্টুডেন্ট ভিসা সম্পন্ন...">
+                    </div>
+
+                    <div class="input-group">
+                        <label>ছবির ফ্রেমের মাঝখানের স্পেশাল লেখা:</label>
+                        <input type="text" id="news-center-text" placeholder="যেমন: Congratulations!">
+                    </div>
+
+                    <div class="input-group">
+                        <label>বিস্তারিত ক্যাপশন বা নোটিশ:</label>
+                        <textarea id="news-details" rows="4" placeholder="এখানে বিস্তারিত লিখুন..."></textarea>
+                    </div>
+
+                    <div style="background: #f8fafc; border: 2px dashed #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="color: #2563eb; margin-bottom: 10px; text-align: center;">ভিসা সাকসেস ছবি (৩ থেকে ১২ জন)</h4>
+                        <div id="student-inputs"></div>
+                        <button onclick="addStudentField()" style="width: 100%; padding: 10px; background: #e2e8f0; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; color: #333;">➕ আরও একজন স্টুডেন্ট যুক্ত করুন</button>
+                    </div>
+
+                    <div class="input-group">
+                        <label style="color: #ef4444;">অথবা, শুধু সাধারণ একটি ছবি (যদি সাকসেস বোর্ড না চান):</label>
+                        <input type="file" id="news-single-image" accept="image/*">
+                    </div>
+
+                    <button class="btn btn-success" id="btn-post-news" onclick="publishNews()">🚀 পাবলিশ করুন</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header" style="color: #ef4444;">🗑️ পূর্বের নিউজ ও সাকসেস পোস্ট মুছুন</div>
+                    <div id="admin-news-list">
+                        <p style="text-align: center; color: gray;">নিউজ লিস্ট লোড হচ্ছে...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="details-sec" class="admin-section">
+                <div class="card">
+                    <div class="card-header">📄 Details পেজের তথ্য পরিবর্তন করুন</div>
+                    
+                    <div class="input-group">
+                        <label>🔥 স্ক্রলিং নোটিশ:</label>
+                        <input type="text" id="det-notice">
+                    </div>
+                    <div class="input-group">
+                        <label>🎓 Bachelors ডকুমেন্টস (নতুন লাইনের জন্য &lt;br&gt; দিন):</label>
+                        <textarea id="det-bach" rows="3"></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>🎓 Masters ডকুমেন্টস:</label>
+                        <textarea id="det-mast" rows="3"></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>🏆 Scholarship ডকুমেন্টস:</label>
+                        <textarea id="det-schol" rows="3"></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>📘 Facebook Page Link:</label>
+                        <input type="url" id="det-fb">
+                    </div>
+                    <div class="input-group">
+                        <label>📧 Contact Email:</label>
+                        <input type="email" id="det-email">
+                    </div>
+                    <div class="input-group">
+                        <label>© Copyright Text:</label>
+                        <input type="text" id="det-copy">
+                    </div>
+                    <div class="input-group">
+                        <label>📍 Office Address:</label>
+                        <input type="text" id="det-address">
+                    </div>
+
+                    <button class="btn btn-primary" id="btn-save-details" onclick="saveDetails()">💾 আপডেট সেভ করুন</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDF7Ago1vKNenaTC5f9tLiwGSilKs4e2e8",
+            authDomain: "education-hub-0.firebaseapp.com",
+            projectId: "education-hub-0",
+            storageBucket: "education-hub-0.firebasestorage.app",
+            messagingSenderId: "803390476576",
+            appId: "1:803390476576:web:0669720d9bda4104c44745",
+            measurementId: "G-CF9HSF3J11"
+        };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const db = firebase.firestore();
+
+        // ট্যাব পরিবর্তন লজিক
+        function switchSection(secId, btnElement) {
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(secId).classList.add('active');
+            btnElement.classList.add('active');
+        }
+
+        function toggleMobileMenu() { document.getElementById('sidebar').classList.toggle('show'); }
+        function closeMobileMenu() { if(window.innerWidth <= 768) { document.getElementById('sidebar').classList.remove('show'); } }
+
+        // ১. ড্যাশবোর্ড ও ইউজার ম্যানেজমেন্ট
+        function loadAdminUsers() {
+            db.collection("users").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+                document.getElementById('total-users-count').innerText = snapshot.size;
+                const container = document.getElementById('users-container');
+                container.innerHTML = '';
+                if(snapshot.empty) { container.innerHTML = '<p>কোনো ইউজার নেই।</p>'; return; }
+
+                snapshot.forEach(doc => {
+                    const u = doc.data();
+                    let sColor = '#f59e0b';
+                    if(u.status === 'Work') sColor = '#2563eb';
+                    else if(u.status === 'Student') sColor = '#10b981';
+                    else if(u.status === 'Exam') sColor = '#8b5cf6';
+                    else if(u.status === 'Scholarship project') sColor = '#ec4899';
+
+                    container.innerHTML += `
+                        <div class="user-card" style="border-left: 5px solid ${sColor};">
+                            <div class="user-details">
+                                <div class="user-name">${u.name}</div>
+                                <div class="user-info">📞 ${u.phone} | 🎓 ${u.edu || 'N/A'} | ✈️ ${u.country || 'N/A'}</div>
+                                <div class="user-info" style="color:${sColor}; font-weight:bold;">Status: ${u.status || 'Pending'}</div>
+                            </div>
+                            <div class="user-actions">
+                                <select id="status-${doc.id}" class="status-select" style="border-color:${sColor};">
+                                    <option value="Pending" ${u.status==='Pending'?'selected':''}>Pending</option>
+                                    <option value="Work" ${u.status==='Work'?'selected':''}>Work</option>
+                                    <option value="Student" ${u.status==='Student'?'selected':''}>Student</option>
+                                    <option value="Exam" ${u.status==='Exam'?'selected':''}>Exam</option>
+                                    <option value="Scholarship project" ${u.status==='Scholarship project'?'selected':''}>Scholarship project</option>
+                                </select>
+                                <button class="btn-update" onclick="updateStatus('${doc.id}')">Update</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function updateStatus(docId) {
+            const newStatus = document.getElementById(`status-${docId}`).value;
+            db.collection("users").doc(docId).update({ status: newStatus });
+            alert(`✅ স্ট্যাটাস দ্রুত "${newStatus}" তে আপডেট হয়েছে!`);
+        }
+
+        // ২. অটো-ক্লিনআপ সিস্টেম (৩ দিনের পুরনো ডাটা ডিলিট)
+        async function deleteOldData() {
+            const btn = document.getElementById('btn-cleanup');
+            const originalText = btn.innerText;
+            btn.innerText = "খোঁজা হচ্ছে এবং ডিলিট করা হচ্ছে... ⏳";
+            btn.disabled = true;
+            btn.style.background = "#9ca3af";
+
+            try {
+                const threeDaysAgo = new Date();
+                threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+                const timestampLimit = firebase.firestore.Timestamp.fromDate(threeDaysAgo);
+
+                const collectionsToClean = ["posts", "news", "chats"];
+                let totalDeleted = 0;
+
+                for (const col of collectionsToClean) {
+                    const snapshot = await db.collection(col).where("timestamp", "<", timestampLimit).get();
+                    if (!snapshot.empty) {
+                        const batch = db.batch();
+                        snapshot.forEach(doc => { batch.delete(doc.ref); totalDeleted++; });
+                        await batch.commit();
+                    }
+                }
+
+                if (totalDeleted > 0) alert(`✅ সাকসেস! মোট ${totalDeleted} টি পুরনো ডাটা সফলভাবে মুছে ফেলা হয়েছে।`);
+                else alert("ℹ️ ডাটাবেসে ৩ দিনের বেশি পুরনো কোনো ডাটা পাওয়া যায়নি।");
+
+            } catch (error) {
+                if (error.message.includes("indexes")) alert("⚠️ ফায়ারবেসে ইনডেক্স তৈরি করতে হবে! ব্রাউজারের Console চেক করুন।");
+                else alert("Error: " + error.message);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+                btn.style.background = "var(--danger)";
+            }
+        }
+
+        // ৩. ডিটেইলস পেজ লজিক
+        function loadDetails() {
+            db.collection("admin_settings").doc("detailsConfig").onSnapshot(doc => {
+                if(doc.exists) {
+                    const d = doc.data();
+                    document.getElementById('det-notice').value = d.notice || '';
+                    document.getElementById('det-bach').value = d.bachelors || '';
+                    document.getElementById('det-mast').value = d.masters || '';
+                    document.getElementById('det-schol').value = d.scholarship || '';
+                    document.getElementById('det-fb').value = d.fbLink || '';
+                    document.getElementById('det-email').value = d.email || '';
+                    document.getElementById('det-copy').value = d.copyright || '';
+                    document.getElementById('det-address').value = d.address || '';
+                }
+            });
+        }
+
+        function saveDetails() {
+            const btn = document.getElementById('btn-save-details');
+            const data = {
+                notice: document.getElementById('det-notice').value,
+                bachelors: document.getElementById('det-bach').value,
+                masters: document.getElementById('det-mast').value,
+                scholarship: document.getElementById('det-schol').value,
+                fbLink: document.getElementById('det-fb').value,
+                email: document.getElementById('det-email').value,
+                copyright: document.getElementById('det-copy').value,
+                address: document.getElementById('det-address').value
+            };
+            db.collection("admin_settings").doc("detailsConfig").set(data);
+            btn.innerText = "✅ সাথে সাথে সেভ হয়েছে!";
+            btn.style.background = "var(--success)";
+            setTimeout(()=> { btn.innerText = "💾 আপডেট সেভ করুন"; btn.style.background = "var(--primary)"; }, 2000);
+        }
+
+        // ৪. নিউজ ও ভিসা সাকসেস লজিক
+        let stdCount = 0;
+        function addStudentField() {
+            if(stdCount >= 12) return alert("সর্বোচ্চ ১২ জন দেওয়া যাবে!");
+            stdCount++;
+            const div = document.createElement('div');
+            div.style.display = "flex"; div.style.gap = "10px"; div.style.marginBottom = "10px";
+            div.innerHTML = `
+                <input type="file" id="pic-${stdCount}" accept="image/*" style="width:50%; background:white;">
+                <input type="text" id="name-${stdCount}" placeholder="স্টুডেন্টের নাম" style="width:50%;">
+            `;
+            document.getElementById('student-inputs').appendChild(div);
+        }
+
+        const compressImageAdmin = (file) => {
+            return new Promise((resolve) => {
+                const r = new FileReader();
+                r.onload = e => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const maxW = 400; // HD quality yet small size
+                        const scale = maxW / img.width;
+                        canvas.width = maxW; 
+                        canvas.height = img.height * scale;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.8));
+                    };
+                    img.src = e.target.result;
+                };
+                r.readAsDataURL(file);
+            });
+        };
+
+        async function publishNews() {
+            const btn = document.getElementById('btn-post-news');
+            btn.innerText = "আপলোড হচ্ছে... দয়া করে অপেক্ষা করুন ⏳"; 
+            btn.disabled = true; btn.style.background = "#6b7280";
+
+            try {
+                let students = [];
+                for(let i=1; i<=stdCount; i++) {
+                    const fileInput = document.getElementById(`pic-${i}`);
+                    const nameInput = document.getElementById(`name-${i}`);
+                    if(fileInput && fileInput.files && fileInput.files[0]) {
+                        const picBase64 = await compressImageAdmin(fileInput.files[0]);
+                        const sName = nameInput.value ? nameInput.value : "Student";
+                        students.push({ pic: picBase64, name: sName });
+                    }
+                }
+
+                const singleFile = document.getElementById('news-single-image');
+                let singleImgBase64 = null;
+                if(singleFile && singleFile.files && singleFile.files[0]) {
+                    singleImgBase64 = await compressImageAdmin(singleFile.files[0]);
+                }
+
+                const details = document.getElementById('news-details').value;
+                const headline = document.getElementById('news-headline').value;
+                const centerText = document.getElementById('news-center-text').value;
+                
+                if(students.length === 0 && !singleImgBase64 && !details && !headline) {
+                    alert('দয়া করে কিছু তথ্য দিন!'); 
+                    btn.innerText = "🚀 পাবলিশ করুন"; btn.disabled = false; btn.style.background = "var(--success)";
+                    return;
+                }
+
+                const newsData = {
+                    authorName: "Education Hub",
+                    authorPic: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+                    timeString: new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute:'2-digit', hour12: true }) + " (Admin)",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    isAdminPost: true, likedBy: [], comments: [],
+                    headline: headline, centerText: centerText, details: details, students: students, postImage: singleImgBase64
+                };
+
+                await db.collection("news").add(newsData);
+                btn.innerText = "✅ সফলভাবে পাবলিশ হয়েছে!";
+                btn.style.background = "var(--success)";
+                setTimeout(() => location.reload(), 1500);
+
+            } catch(error) {
+                alert("Error: " + error.message);
+                btn.innerText = "🚀 পাবলিশ করুন"; btn.disabled = false; btn.style.background = "var(--success)";
+            }
+        }
+
+        // ৫. নিউজ লিস্ট লোড ও ডিলিট করা
+        function loadAdminNewsList() {
+            db.collection("news").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+                const list = document.getElementById('admin-news-list');
+                if(!list) return;
+                list.innerHTML = '';
+                
+                if(snapshot.empty) { list.innerHTML = '<p style="text-align:center; color:gray;">কোনো নিউজ পোস্ট নেই।</p>'; return; }
+
+                snapshot.forEach(doc => {
+                    const n = doc.data();
+                    const titleText = n.headline || n.details || "📷 ছবি / ভিসা সাকসেস পোস্ট";
+                    list.innerHTML += `
+                        <div class="user-card" style="border-left: 4px solid var(--danger); margin-bottom: 10px;">
+                            <div class="user-details" style="flex:1;">
+                                <strong style="color: #333; font-size:0.95rem;">${titleText.substring(0, 50)}...</strong>
+                                <div style="font-size: 0.8rem; color: gray; margin-top:5px;">🕒 ${n.timeString}</div>
+                            </div>
+                            <button class="btn-update" style="background: var(--danger); color: white;" onclick="deleteNewsPost('${doc.id}')">ডিলিট</button>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function deleteNewsPost(docId) {
+            if(confirm('আপনি কি নিশ্চিত এই নিউজটি ডিলিট করবেন? ডিলিট করলে আর ফেরত পাওয়া যাবে না!')) {
+                db.collection("news").doc(docId).delete()
+                .then(() => alert('✅ নিউজটি সফলভাবে ডিলিট হয়েছে!'))
+                .catch(e => alert('Error: ' + e.message));
+            }
+        }
+
+        // পেজ লোড হলে ফাংশনগুলো রান করবে
+        window.onload = () => { 
+            addStudentField(); addStudentField(); addStudentField(); 
+            loadAdminUsers(); 
+            loadDetails(); 
+            loadAdminNewsList();
+        };
+    </script>
+</body>
+</html>
