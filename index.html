@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IES Pro Admin Dashboard</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f0f2f5; --primary: #1877f2; --secondary: #1e40af;
+            --success: #10b981; --warning: #f59e0b; --danger: #e41e3f;
+            --text-dark: #050505; --card-bg: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-dark); }
+
+        /* ================== Top Navbar ================== */
+        .top-navbar {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white; padding: 15px 30px; display: flex; justify-content: space-between;
+            align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .top-navbar h2 { margin: 0; font-size: 1.4rem; display: flex; align-items: center; gap: 10px; }
+        
+        .nav-actions { display: flex; gap: 20px; align-items: center; }
+        .notification-bell { position: relative; font-size: 1.5rem; cursor: pointer; }
+        .badge { position: absolute; top: -5px; right: -8px; background: var(--danger); color: white; font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 50%; border: 2px solid white; display: none; }
+        .btn-home { background: white; color: var(--primary); border: none; padding: 8px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-home:hover { background: #e0e7ff; }
+
+        /* ================== Main Container & Grid ================== */
+        .container { padding: 30px; max-width: 1200px; margin: auto; }
+        #dashboard-home { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; animation: fadeIn 0.4s; }
+        
+        .dash-card {
+            background: var(--card-bg); padding: 30px 20px; border-radius: 15px; text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; border: 1px solid #e2e8f0;
+        }
+        .dash-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(24,119,242,0.15); border-color: var(--primary); }
+        .dash-icon { font-size: 3rem; margin-bottom: 15px; display: block; }
+        .dash-title { font-size: 1.2rem; font-weight: bold; color: var(--text-dark); margin-bottom: 5px; }
+
+        /* ================== Sections ================== */
+        .admin-section { display: none; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #ddd; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 15px; margin-bottom: 20px; }
+        .section-title { font-size: 1.3rem; font-weight: bold; color: var(--primary); }
+        
+        .filter-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        input, select, textarea { width: 100%; padding: 10px 15px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background: #f8fafc; font-size: 0.95rem; margin-bottom: 15px;}
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); background: white; }
+        
+        .btn { padding: 8px 15px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; color: white; display: inline-flex; align-items: center; justify-content: center; gap: 5px;}
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--danger); }
+        .btn-warning { background: var(--warning); }
+
+        /* ================== Facebook Style Notifications ================== */
+        .notif-dropdown { position: absolute; top: 60px; right: 30px; background: white; width: 360px; max-height: 500px; overflow-y: auto; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; z-index: 1000; border: 1px solid #ddd;}
+        .notif-dropdown.show { display: block; }
+        
+        .notif-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; border-bottom: 1px solid #f0f2f5; cursor: pointer; transition: background 0.2s; }
+        .notif-item:hover { background: #f2f2f2; }
+        .notif-item.unread { background: #e7f3ff; }
+        
+        .notif-icon { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd; flex-shrink: 0; }
+        .notif-content { flex: 1; font-size: 0.9rem; line-height: 1.3; color: #050505; }
+        .notif-time { font-size: 0.75rem; color: #65676B; margin-top: 3px; }
+        .notif-dot { width: 12px; height: 12px; background: var(--primary); border-radius: 50%; flex-shrink: 0; }
+        .mention-tag { color: var(--primary); font-weight: bold; background: #e7f3ff; padding: 0 4px; border-radius: 4px; }
+
+        /* ================== Compact User List ================== */
+        .user-compact-row { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #e2e8f0; transition: 0.2s; }
+        .user-compact-row:hover { background: #f8fafc; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        /* ================== Modals ================== */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: white; width: 90%; max-width: 500px; border-radius: 12px; padding: 25px; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .close-modal { position: absolute; top: 15px; left: 15px; background: #e2e8f0; color: #1e293b; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; font-weight: bold; font-size: 1.1rem; }
+        
+        .modal-prof-header { text-align: center; position: relative; padding-bottom: 15px; margin-bottom: 15px; border-bottom: 1px solid #eee; }
+        .modal-prof-img { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 4px solid var(--primary); box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin: 0 auto 10px auto; }
+        .btn-del-account { position: absolute; top: 0; right: 0; background: var(--danger); color: white; padding: 8px 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(228,30,63,0.3); transition: 0.2s; }
+        .btn-del-account:hover { transform: scale(1.05); }
+
+        /* ================== Single Chat View ================== */
+        #chat-list-view { display: block; }
+        #chat-box-view { display: none; flex-direction: column; height: 600px; }
+        
+        .chat-list-item { display: flex; align-items: center; gap: 15px; background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; border: 1px solid #e2e8f0; transition: 0.2s; }
+        .chat-list-item:hover { background: #f1f5f9; }
+        .chat-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0; }
+
+        .chat-box { flex: 1; overflow-y: auto; padding: 15px; background: #f0f2f5; border-radius: 10px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; border: 1px solid #e2e8f0;}
+        .chat-bubble { max-width: 75%; padding: 10px 15px; border-radius: 18px; font-size: 0.95rem; }
+        .chat-me { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .chat-other { background: white; color: var(--text-dark); align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; }
+        .chat-img { width: 100%; max-width: 200px; border-radius: 10px; margin-top: 5px; cursor: pointer; border: 1px solid #ddd; }
+        
+        .chat-input-area { display: flex; align-items: center; gap: 10px; background: white; padding: 10px; border-radius: 30px; border: 1px solid #cbd5e1; }
+        .chat-input-area input { margin-bottom: 0; border: none; background: transparent; padding: 5px 15px; flex: 1; outline: none;}
+        .img-upload-label { font-size: 1.5rem; color: var(--primary); cursor: pointer; padding-left: 10px; }
+        .btn-send-round { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; border: none; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s;}
+        .btn-send-round:active { transform: scale(0.9); }
+        
+        .preview-box { display: flex; align-items: center; gap: 10px; background: #f0fdf4; padding: 10px 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #10b981; display: none; }
+        .preview-box img { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid var(--primary); }
+    </style>
+</head>
+<body>
+
+    <div class="top-navbar">
+        <h2>⚙️ IES Pro Admin</h2>
+        <div class="nav-actions">
+            <button class="btn-home" onclick="showHome()">🏠 Home</button>
+            <div class="notification-bell" onclick="toggleNotifications()">
+                🔔 <span class="badge" id="admin-notif-badge">0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="notif-dropdown" id="notif-box">
+        <h3 style="padding: 15px; margin: 0; border-bottom: 1px solid #ddd; color: var(--text-dark);">Notifications</h3>
+        <div id="notif-list-admin">
+            <p style="text-align: center; padding: 20px; color: gray;">লোড হচ্ছে...</p>
+        </div>
+    </div>
+
+    <div id="post-view-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('post-view-modal')" style="right:15px; left:auto;">✖</button>
+            <div id="modal-post-content"></div>
+        </div>
+    </div>
+
+    <div id="user-edit-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('user-edit-modal')" style="z-index: 10;">✖</button>
+            <div id="modal-user-edit-form"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="dashboard-home">
+            <div class="dash-card" onclick="openSection('users-sec')">
+                <span class="dash-icon">👥</span>
+                <div class="dash-title">সকল ইউজার লিস্ট</div>
+            </div>
+            <div class="dash-card" onclick="openSection('chat-sec')">
+                <span class="dash-icon">💬</span>
+                <div class="dash-title">পার্সোনাল চ্যাট</div>
+            </div>
+            <div class="dash-card" onclick="openSection('news-sec')">
+                <span class="dash-icon">📢</span>
+                <div class="dash-title">অ্যাডমিন নিউজ পোস্ট</div>
+            </div>
+            <div class="dash-card" onclick="openSection('details-sec')">
+                <span class="dash-icon">📄</span>
+                <div class="dash-title">ডিটেইলস পেজ এডিট</div>
+            </div>
+        </div>
+
+        <div id="users-sec" class="admin-section">
+            <div class="card">
+                <div class="section-header">
+                    <span class="section-title">👥 ইউজার ডাটাবেস</span>
+                    <span style="background:#e7f3ff; color:var(--primary); padding:5px 15px; border-radius:20px; font-weight:bold;">Total: <span id="total-users">0</span></span>
+                </div>
+                
+                <div class="filter-row">
+                    <input type="text" id="search-user" placeholder="🔍 নাম বা মোবাইল নাম্বার লিখে খুঁজুন..." style="flex: 2; margin-bottom: 0;" onkeyup="filterUsers()">
+                    <select id="filter-country" style="flex: 1; margin-bottom: 0;" onchange="filterUsers()">
+                        <option value="All">🌍 সব দেশের ইউজার</option>
+                        <option value="রাশিয়া">রাশিয়া</option>
+                        <option value="সাউথ কোরিয়া">সাউথ কোরিয়া</option>
+                        <option value="নিউজিল্যান্ড">নিউজিল্যান্ড</option>
+                        <option value="সাইপ্রাস">সাইপ্রাস</option>
+                        <option value="জাপান">জাপান</option>
+                    </select>
+                </div>
+
+                <div id="users-list-container"><p style="text-align: center; color: gray;">লোড হচ্ছে...</p></div>
+            </div>
+        </div>
+
+        <div id="chat-sec" class="admin-section">
+            <div class="card" style="height: 650px; display: flex; flex-direction: column; padding: 15px;">
+                
+                <div id="chat-list-view" style="flex:1; overflow-y:auto;">
+                    <div class="section-header"><span class="section-title">💬 ইনবক্স (এক্টিভ চ্যাটসমূহ)</span></div>
+                    <div id="admin-chat-list"><p style="text-align: center; color: gray; margin-top: 20px;">অপেক্ষা করুন...</p></div>
+                </div>
+
+                <div id="chat-box-view">
+                    <div style="display:flex; align-items:center; gap:10px; background:#f8fafc; padding:15px; border-radius:10px; margin-bottom:10px; border:1px solid #e2e8f0;">
+                        <button onclick="backToChatList()" style="background:var(--primary); color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:bold;">⬅ Back</button>
+                        <div>
+                            <h3 id="chat-active-name" style="margin:0; color:#1e293b;">Name</h3>
+                            <div id="chat-active-status" style="font-size:0.8rem; font-weight:bold;">Loading status...</div>
+                        </div>
+                    </div>
+
+                    <div id="admin-messages" class="chat-box"></div>
+
+                    <div id="admin-img-preview" class="preview-box">
+                        <img id="admin-preview-src" src="">
+                        <div style="flex:1;"><strong style="color:var(--success); font-size:0.85rem;">ছবি সিলেক্ট করা হয়েছে</strong></div>
+                        <button onclick="cancelAdminImg()" style="background:var(--danger); color:white; border:none; border-radius:50%; width:25px; height:25px; cursor:pointer;">✖</button>
+                    </div>
+
+                    <div class="chat-input-area">
+                        <label for="admin-img-upload" class="img-upload-label">📷</label>
+                        <input type="file" id="admin-img-upload" accept="image/*" style="display:none;" onchange="showAdminImgPreview(this)">
+                        <input type="text" id="admin-chat-input" placeholder="মেসেজ লিখুন...">
+                        <button class="btn-send-round" onclick="sendAdminMessage()">➤</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="news-sec" class="admin-section">
+            <div class="card">
+                <div class="section-header"><span class="section-title">🚀 নতুন নিউজ ও সাকসেস বোর্ড তৈরি করুন</span></div>
+                
+                <input type="text" id="n-head" placeholder="অ্যানিমেটেড হেডলাইন (টিভি স্ক্রল)">
+                <input type="text" id="n-badge" placeholder="🔥 ঘূর্ণায়মান অফার ব্যাজ (যেমন: 50% Off)">
+                <input type="text" id="n-center" placeholder="ছবির মাঝখানের লেখা (যেমন: Congratulations!)">
+                <textarea id="n-details" rows="3" placeholder="বিস্তারিত ক্যাপশন বা নোটিশ লিখুন..."></textarea>
+
+                <div style="background: #f8fafc; border: 1px dashed #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4 style="color: var(--primary); margin-bottom: 10px; text-align: center;">ভিসা সাকসেস স্টুডেন্ট (৩-১২ জন)</h4>
+                    <div id="std-box"></div>
+                    <button onclick="addStd()" style="width: 100%; padding: 10px; background: #e2e8f0; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px;">➕ আরও একজন যুক্ত করুন</button>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="color: var(--danger); font-weight:bold; font-size:0.9rem;">অথবা, শুধু সাধারণ একটি ছবি (ক্লিয়ার সাইজ):</label>
+                    <input type="file" id="n-single-img" accept="image/*" style="margin-top: 5px;">
+                </div>
+
+                <button class="btn btn-primary" style="width:100%;" id="btn-post" onclick="publishNews()">🚀 পাবলিশ করুন</button>
+            </div>
+
+            <div class="card">
+                <div class="section-header"><span class="section-title" style="color: var(--danger);">📢 আপনার প্রকাশিত নিউজসমূহ (ডিলিট অপশন)</span></div>
+                <div id="admin-news-list"><p style="text-align:center; color:gray;">লোড হচ্ছে...</p></div>
+            </div>
+        </div>
+
+        <div id="details-sec" class="admin-section">
+            <div class="card">
+                <div class="section-header"><span class="section-title">📄 Details পেজের তথ্য পরিবর্তন করুন</span></div>
+                <input type="text" id="d-not" placeholder="🔥 স্ক্রলিং নোটিশ">
+                <textarea id="d-bac" rows="2" placeholder="🎓 Bachelors ডকুমেন্টস"></textarea>
+                <textarea id="d-mas" rows="2" placeholder="🎓 Masters ডকুমেন্টস"></textarea>
+                <textarea id="d-sch" rows="2" placeholder="🏆 Scholarship ডকুমেন্টস"></textarea>
+                <input type="url" id="d-fb" placeholder="📘 Facebook Page Link">
+                <input type="email" id="d-em" placeholder="📧 Contact Email">
+                <input type="text" id="d-cop" placeholder="© Copyright Text">
+                <input type="text" id="d-add" placeholder="📍 Office Address">
+                <button class="btn btn-success" style="width:100%;" id="btn-save-det" onclick="saveDetails()">💾 আপডেট সেভ করুন</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDF7Ago1vKNenaTC5f9tLiwGSilKs4e2e8", authDomain: "education-hub-0.firebaseapp.com",
+            projectId: "education-hub-0", storageBucket: "education-hub-0.firebasestorage.app",
+            messagingSenderId: "803390476576", appId: "1:803390476576:web:0669720d9bda4104c44745", measurementId: "G-CF9HSF3J11"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        db.collection("users").doc("admin_account").set({
+            name: "IES Admin", phone: "admin", pic: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png", status: "Admin"
+        }, {merge: true});
+
+        function showHome() {
+            document.querySelectorAll('.admin-section').forEach(s => s.style.display = 'none');
+            document.getElementById('dashboard-home').style.display = 'grid';
+        }
+        function openSection(id) {
+            document.getElementById('dashboard-home').style.display = 'none';
+            document.querySelectorAll('.admin-section').forEach(s => s.style.display = 'none');
+            document.getElementById(id).style.display = 'block';
+            
+            if(id === 'users-sec') loadAllUsers();
+            if(id === 'chat-sec') { backToChatList(); loadAdminChatList(); }
+            if(id === 'news-sec') loadAdminNewsList();
+            if(id === 'details-sec') loadDetails();
+        }
+        
+        function toggleNotifications() { document.getElementById('notif-box').classList.toggle('show'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        // ================= 1. Facebook Style Notification & Post Viewer =================
+        let readMentions = JSON.parse(localStorage.getItem('readMentions')) || [];
+
+        // ডাইরেক্ট Posts কালেকশন থেকে @admin ফিল্টার করে নোটিফিকেশন তৈরি
+        db.collection("posts").orderBy("timestamp", "desc").limit(50).onSnapshot(snap => {
+            const list = document.getElementById('notif-list-admin');
+            const badge = document.getElementById('admin-notif-badge');
+            list.innerHTML = ''; let count = 0;
+            
+            snap.forEach(doc => {
+                const p = doc.data();
+                if (p.text && (p.text.toLowerCase().includes('@admin') || p.text.toLowerCase().includes('@ies admin'))) {
+                    let isRead = readMentions.includes(doc.id);
+                    if (!isRead) count++;
+                    
+                    let timeStr = p.timeString ? p.timeString : 'Recently';
+                    
+                    list.innerHTML += `
+                        <div class="notif-item ${isRead ? '' : 'unread'}" onclick="markMentionRead('${doc.id}')">
+                            <img src="${p.authorPic || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="notif-icon">
+                            <div class="notif-content">
+                                <strong>${p.authorName}</strong> আপনাকে একটি পোস্টে <span class="mention-tag">@admin</span> ট্যাগ করেছে।
+                                <div class="notif-time">${timeStr}</div>
+                            </div>
+                            ${!isRead ? '<div class="notif-dot"></div>' : ''}
+                        </div>`;
+                }
+            });
+            
+            if(count > 0) { badge.innerText = count; badge.style.display = 'block'; } 
+            else if(list.innerHTML === '') { list.innerHTML = '<p style="text-align:center; padding:20px; color:gray;">নতুন কোনো নোটিফিকেশন নেই</p>'; badge.style.display = 'none'; }
+            else { badge.style.display = 'none'; }
+        });
+
+        function markMentionRead(postId) {
+            if(!readMentions.includes(postId)) {
+                readMentions.push(postId);
+                localStorage.setItem('readMentions', JSON.stringify(readMentions));
+            }
+            viewPostInModal(postId);
+        }
+
+        // নোটিফিকেশনে ক্লিক করলে পোস্ট ভিউ এবং ডিলিট
+        function viewPostInModal(postId) {
+            const modal = document.getElementById('post-view-modal');
+            const content = document.getElementById('modal-post-content');
+            modal.classList.add('active'); content.innerHTML = '<p style="text-align:center;">লোড হচ্ছে...</p>';
+            document.getElementById('notif-box').classList.remove('show');
+
+            db.collection("posts").doc(postId).get().then(doc => {
+                if(doc.exists) {
+                    const p = doc.data();
+                    let formattedText = p.text ? p.text.replace(/@admin/gi, '<span class="mention-tag">@admin</span>') : '';
+                    let imgHTML = p.postImage ? `<img src="${p.postImage}" style="width:100%; border-radius:10px; margin-top:10px;">` : '';
+                    
+                    let comHTML = '';
+                    if(p.comments) { p.comments.forEach(c => { comHTML += `<div style="background:#f0f2f5; padding:10px; border-radius:15px; margin-top:5px; font-size:0.9rem;"><strong>${c.authorName}:</strong> ${c.text}</div>`; }); }
+                    
+                    content.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <img src="${p.authorPic}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                                <div><strong style="color:var(--text-dark);">${p.authorName}</strong><br><span style="font-size:0.75rem; color:gray;">${p.timeString}</span></div>
+                            </div>
+                            <button onclick="deleteUserPost('${postId}')" style="background:var(--danger); color:white; border:none; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:bold;">🗑️ Delete</button>
+                        </div>
+                        <p style="font-size:1rem; color:var(--text-dark);">${formattedText}</p>${imgHTML}
+                        
+                        <hr style="margin:15px 0; border:1px dashed #ddd;"><h4 style="margin-bottom:10px; color:var(--text-dark);">💬 কমেন্টস:</h4>
+                        <div style="max-height:180px; overflow-y:auto; margin-bottom:10px;">${comHTML || '<span style="color:gray; font-size:0.85rem;">কোনো কমেন্ট নেই</span>'}</div>
+                        
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" id="modal-reply-${postId}" placeholder="অ্যাডমিন রিপ্লাই..." style="margin:0; flex:1; border-radius:20px; padding:8px 15px;">
+                            <button class="btn btn-primary" style="width:auto; border-radius:20px;" onclick="replyFromModal('${postId}', '${p.authorPhone}')">Send</button>
+                        </div>
+                    `;
+                } else {
+                    content.innerHTML = '<p style="text-align:center; color:var(--danger);">পোস্টটি পাওয়া যায়নি (হয়তো ডিলিট করা হয়েছে)।</p>';
+                }
+            });
+        }
+
+        function deleteUserPost(postId) {
+            if(confirm("সত্যিই ইউজারের পোস্টটি ডিলিট করতে চান?")) {
+                db.collection("posts").doc(postId).delete().then(() => {
+                    alert("🗑️ পোস্ট ডিলিট করা হয়েছে!");
+                    closeModal('post-view-modal');
+                });
+            }
+        }
+
+        function replyFromModal(postId, authorPhone) {
+            const input = document.getElementById(`modal-reply-${postId}`); if(!input.value) return;
+            db.collection("posts").doc(postId).update({ comments: firebase.firestore.FieldValue.arrayUnion({ authorName: "IES Admin", authorPic: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png", text: input.value }) });
+            db.collection("users").doc(authorPhone).collection("notifications").add({ title: "অ্যাডমিন রিপ্লাই", body: "আপনার পোস্টে অ্যাডমিন রিপ্লাই দিয়েছে।", read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            input.value = ''; alert("✅ রিপ্লাই সফলভাবে যুক্ত হয়েছে!");
+        }
+
+        // ================= 2. User Search, Compact List, Profile Edit & Delete =================
+        let allUsersData = [];
+        function loadAllUsers() {
+            db.collection("users").orderBy("timestamp", "desc").onSnapshot(snap => {
+                allUsersData = [];
+                snap.forEach(doc => { if(doc.data().phone !== "admin") allUsersData.push({id: doc.id, ...doc.data()}); });
+                document.getElementById('total-users').innerText = allUsersData.length;
+                filterUsers(); 
+            });
+        }
+
+        function filterUsers() {
+            const search = document.getElementById('search-user').value.toLowerCase();
+            const country = document.getElementById('filter-country').value;
+            const filtered = allUsersData.filter(u => {
+                const matchSearch = u.name.toLowerCase().includes(search) || u.phone.includes(search);
+                const matchCountry = country === "All" || u.country === country;
+                return matchSearch && matchCountry;
+            });
+            renderFilteredUsers(filtered);
+        }
+
+        function renderFilteredUsers(users) {
+            const box = document.getElementById('users-list-container'); box.innerHTML = '';
+            if(users.length === 0) { box.innerHTML = '<p style="text-align:center; color:gray; padding:20px;">কোনো ইউজার পাওয়া যায়নি।</p>'; return; }
+
+            users.forEach(u => {
+                let sColor = '#f59e0b';
+                if(u.status === 'Work') sColor = '#2563eb'; else if(u.status === 'Student') sColor = '#10b981'; else if(u.status === 'Exam') sColor = '#8b5cf6'; else if(u.status === 'Scholarship project') sColor = '#e41e3f';
+                
+                box.innerHTML += `
+                    <div class="user-compact-row" style="border-left: 4px solid ${sColor};">
+                        <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                            <img src="${u.pic}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                            <div style="flex:1; overflow:hidden;">
+                                <div style="font-weight:bold; font-size:1rem; color:var(--text-dark); white-space:nowrap;">${u.name}</div>
+                                <div style="font-size:0.8rem; color:gray;">📞 ${u.phone}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <span style="font-size:0.75rem; background:${sColor}; color:white; padding:3px 8px; border-radius:10px; font-weight:bold;">${u.status || 'Pending'}</span>
+                            <button title="Message" onclick="openChatFromList('${u.phone}', '${u.name}')" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--primary);">💬</button>
+                            <button title="Edit Profile" onclick="openUserEditModal('${u.id}')" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--warning);">✏️</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function openChatFromList(phone, name) {
+            openSection('chat-sec');
+            openAdminChat(phone, name);
+        }
+
+        function openUserEditModal(docId) {
+            const user = allUsersData.find(u => u.id === docId);
+            if(!user) return;
+            const modal = document.getElementById('user-edit-modal');
+            const formBox = document.getElementById('modal-user-edit-form');
+            modal.classList.add('active');
+
+            formBox.innerHTML = `
+                <div class="modal-prof-header">
+                    <button class="btn-del-account" onclick="deleteUserAccount('${docId}')">🗑️ ডিলিট একাউন্ট</button>
+                    <img src="${user.pic}" class="modal-prof-img">
+                    <h3 style="color:var(--text-dark); margin-bottom:5px;">${user.name}</h3>
+                    <p style="color:gray; font-size:0.85rem; margin:0;">📞 ${user.phone}</p>
+                </div>
+                <label style="font-size:0.85rem; font-weight:bold; color:gray;">পূর্ণ নাম:</label><input type="text" id="eu-name" value="${user.name}">
+                <label style="font-size:0.85rem; font-weight:bold; color:gray;">ইমেইল:</label><input type="email" id="eu-email" value="${user.email}">
+                <div style="display:flex; gap:10px;"><div style="flex:1;"><label style="font-size:0.85rem; font-weight:bold; color:gray;">জেলা:</label><input type="text" id="eu-district" value="${user.district || ''}"></div><div style="flex:1;"><label style="font-size:0.85rem; font-weight:bold; color:gray;">দেশ:</label><input type="text" id="eu-country" value="${user.country || ''}"></div></div>
+                <label style="font-size:0.85rem; font-weight:bold; color:gray;">অ্যাকাউন্ট স্ট্যাটাস:</label>
+                <select id="eu-status">
+                    <option value="Pending" ${user.status==='Pending'?'selected':''}>Pending</option>
+                    <option value="Work" ${user.status==='Work'?'selected':''}>Work</option>
+                    <option value="Student" ${user.status==='Student'?'selected':''}>Student</option>
+                    <option value="Exam" ${user.status==='Exam'?'selected':''}>Exam</option>
+                    <option value="Scholarship project" ${user.status==='Scholarship project'?'selected':''}>Scholarship project</option>
+                </select>
+                <button class="btn btn-success" style="width:100%; margin-top:10px;" onclick="saveUserEdit('${docId}')">✅ সকল তথ্য আপডেট করুন</button>
+            `;
+        }
+
+        function saveUserEdit(docId) {
+            db.collection("users").doc(docId).update({ name: document.getElementById('eu-name').value, email: document.getElementById('eu-email').value, district: document.getElementById('eu-district').value, country: document.getElementById('eu-country').value, status: document.getElementById('eu-status').value }).then(() => { alert("✅ আপডেট হয়েছে!"); closeModal('user-edit-modal'); });
+        }
+
+        function deleteUserAccount(docId) {
+            if(confirm("⚠️ আপনি কি নিশ্চিত? এই ইউজারের অ্যাকাউন্ট মুছে যাবে।")) { db.collection("users").doc(docId).delete().then(() => { alert("🗑️ মুছে ফেলা হয়েছে!"); closeModal('user-edit-modal'); }); }
+        }
+
+        // ================= 3. Smart Chat System (Active List) =================
+        let currentChatPhone = null; let activeChatListener = null; let activeStatusListener = null;
+        function getChatId(p1, p2) { return p1 > p2 ? p1 + "_" + p2 : p2 + "_" + p1; }
+
+        function loadAdminChatList() {
+            const listArea = document.getElementById('admin-chat-list');
+            db.collection("users").get().then(snap => {
+                listArea.innerHTML = ''; let count = 0;
+                snap.forEach(doc => {
+                    const u = doc.data(); if(u.phone === "admin") return;
+                    const cId = getChatId("admin", u.phone);
+                    
+                    db.collection("private_chats").doc(cId).collection("messages").orderBy("timestamp", "desc").limit(1).onSnapshot(mSnap => {
+                        if(!mSnap.empty) {
+                            const lst = mSnap.docs[0].data(); const isUnr = (lst.sender !== "admin" && !lst.seen); const pfx = lst.sender === "admin" ? "আপনি: " : ""; const msgText = lst.image ? '📷 ছবি পাঠিয়েছে' : lst.text;
+                            let udv = document.getElementById(`cl-${u.phone}`);
+                            if(!udv) { count++; listArea.innerHTML += `<div id="cl-${u.phone}" class="chat-list-item" onclick="openAdminChat('${u.phone}', '${u.name}')"><img src="${u.pic}" class="chat-avatar"><div style="flex:1; overflow:hidden;"><div style="font-weight:bold; color:var(--text-dark);">${u.name}</div><div id="lm-${u.phone}" style="font-size:0.85rem; color:${isUnr?'var(--primary)':'#65676B'}; font-weight:${isUnr?'bold':'normal'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${pfx}${msgText}</div></div><div id="dot-${u.phone}" style="width:12px; height:12px; background:var(--primary); border-radius:50%; display:${isUnr?'block':'none'};"></div></div>`; } 
+                            else { document.getElementById(`lm-${u.phone}`).innerHTML = `${pfx}${msgText}`; document.getElementById(`lm-${u.phone}`).style.color = isUnr ? 'var(--primary)' : '#65676B'; document.getElementById(`lm-${u.phone}`).style.fontWeight = isUnr ? 'bold' : 'normal'; document.getElementById(`dot-${u.phone}`).style.display = isUnr ? 'block' : 'none'; }
+                        }
+                    });
+                });
+                setTimeout(()=> { if(count===0 && listArea.innerHTML==='') listArea.innerHTML = '<p style="text-align:center; color:gray; padding:20px;">এখনো কারো সাথে চ্যাট হয়নি।</p>'; }, 1500);
+            });
+        }
+
+        function openAdminChat(phone, name) {
+            currentChatPhone = phone;
+            document.getElementById('chat-list-view').style.display = 'none';
+            document.getElementById('chat-box-view').style.display = 'flex';
+            document.getElementById('chat-active-name').innerText = name;
+            cancelAdminImg(); 
+            
+            if(activeStatusListener) activeStatusListener();
+            activeStatusListener = db.collection("users").doc(phone).onSnapshot(doc => {
+                const sBox = document.getElementById('chat-active-status');
+                if(doc.exists && doc.data().lastSeen) {
+                    const lDate = doc.data().lastSeen.toDate(); const dMins = Math.round((new Date() - lDate)/60000);
+                    if(dMins < 2) { sBox.innerText = "Active Now"; sBox.style.color = "var(--success)"; } else { sBox.innerText = "Last seen: " + lDate.toLocaleString('en-US',{timeZone:'Asia/Dhaka', hour:'2-digit', minute:'2-digit', hour12:true, day:'numeric', month:'short'}); sBox.style.color = "gray"; }
+                }
+            });
+
+            const box = document.getElementById('admin-messages'); const cId = getChatId("admin", phone);
+            const threeDaysAgo = new Date(); threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+            
+            if(activeChatListener) activeChatListener();
+            activeChatListener = db.collection("private_chats").doc(cId).collection("messages").where("timestamp", ">=", firebase.firestore.Timestamp.fromDate(threeDaysAgo)).orderBy("timestamp", "asc").onSnapshot(snap => {
+                box.innerHTML = '';
+                if(snap.empty) { box.innerHTML = '<p style="text-align:center; color:gray; margin:auto;">মেসেজ পাঠিয়ে কথা শুরু করুন...</p>'; return; }
+                snap.forEach(d => {
+                    const m = d.data(); const isMe = m.sender === "admin";
+                    if(!isMe && !m.seen) d.ref.update({seen: true});
+                    const stat = isMe ? (m.seen ? '✓ Seen' : 'Sent') : '';
+                    let cHTML = m.text ? `<div>${m.text}</div>` : ''; if(m.image) cHTML += `<img src="${m.image}" class="chat-img" onclick="window.open('${m.image}')">`;
+                    box.innerHTML += `<div class="chat-bubble ${isMe?'chat-me':'chat-other'}">${cHTML}<span style="display:block; font-size:0.65rem; text-align:right; margin-top:5px; opacity:0.8;">${stat}</span></div>`;
+                });
+                box.scrollTop = box.scrollHeight;
+            });
+        }
+
+        function backToChatList() { document.getElementById('chat-list-view').style.display = 'block'; document.getElementById('chat-box-view').style.display = 'none'; if(activeChatListener) activeChatListener(); if(activeStatusListener) activeStatusListener(); currentChatPhone = null; }
+
+        function showAdminImgPreview(input) { if(input.files && input.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('admin-preview-src').src = e.target.result; document.getElementById('admin-img-preview').style.display = 'flex'; }; r.readAsDataURL(input.files[0]); } }
+        function cancelAdminImg() { document.getElementById('admin-img-upload').value = ''; document.getElementById('admin-img-preview').style.display = 'none'; }
+        const compressImageAdmin = (file) => { return new Promise((resolve) => { const r = new FileReader(); r.onload = e => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const scale = 600 / img.width; canvas.width = 600; canvas.height = img.height * scale; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.8)); }; img.src = e.target.result; }; r.readAsDataURL(file); }); };
+
+        async function sendAdminMessage() {
+            if(!currentChatPhone) return;
+            const input = document.getElementById('admin-chat-input'); const imgInp = document.getElementById('admin-img-upload');
+            if(!input.value && (!imgInp.files || imgInp.files.length===0)) return;
+            const cId = getChatId("admin", currentChatPhone); let imgData = null;
+            if(imgInp.files && imgInp.files[0]) imgData = await compressImageAdmin(imgInp.files[0]);
+            await db.collection("private_chats").doc(cId).collection("messages").add({ sender: "admin", text: input.value, image: imgData, seen: false, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            db.collection("users").doc(currentChatPhone).collection("notifications").add({ title: "IES Admin", body: "অ্যাডমিন আপনাকে একটি মেসেজ পাঠিয়েছে।", read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            input.value = ''; cancelAdminImg();
+        }
+
+        // ================= 4. News Publisher & FIX DELETE ERROR =================
+        let stdCount = 0;
+        function addStd() { if(stdCount >= 12) return alert("সর্বোচ্চ ১২ জন!"); stdCount++; const div = document.createElement('div'); div.style.display = "flex"; div.style.gap = "10px"; div.style.marginBottom = "10px"; div.innerHTML = `<input type="file" id="pic-${stdCount}" accept="image/*" style="width:50%; margin:0;"><input type="text" id="name-${stdCount}" placeholder="স্টুডেন্টের নাম" style="width:50%; margin:0;">`; document.getElementById('std-box').appendChild(div); }
+
+        async function publishNews() {
+            const btn = document.getElementById('btn-post'); btn.innerText = "আপলোড হচ্ছে... ⏳"; btn.disabled = true;
+            try {
+                let stds = [];
+                for(let i=1; i<=stdCount; i++) { const f = document.getElementById(`pic-${i}`); const n = document.getElementById(`name-${i}`); if(f && f.files[0]) stds.push({ pic: await compressImageAdmin(f.files[0]), name: n.value || "Student" }); }
+                const sImg = document.getElementById('n-single-img'); let sData = null; if(sImg.files[0]) sData = await compressImageAdmin(sImg.files[0]);
+                await db.collection("news").add({
+                    authorName: "IES Admin", authorPhone: "admin", authorPic: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+                    timeString: new Date().toLocaleString('en-US', {timeZone: 'Asia/Dhaka'}), timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    headline: document.getElementById('n-head').value, offerBadge: document.getElementById('n-badge').value,
+                    centerText: document.getElementById('n-center').value, details: document.getElementById('n-details').value,
+                    students: stds, postImage: sData, comments: [], likedBy: [], isAdminPost: true
+                });
+                btn.innerText = "✅ পাবলিশ সম্পন্ন!"; btn.style.background = "var(--success)"; setTimeout(()=>{ btn.innerText="🚀 পাবলিশ করুন"; btn.style.background="var(--primary)"; btn.disabled=false; }, 2000);
+            } catch(e) { alert(e.message); btn.disabled = false; }
+        }
+
+        // Fix: Removed "where" clause to prevent Index Error. Filtering manually in Javascript.
+        function loadAdminNewsList() {
+            db.collection("news").orderBy("timestamp", "desc").onSnapshot(snap => {
+                const box = document.getElementById('admin-news-list'); box.innerHTML = '';
+                let hasAdminPost = false;
+                
+                snap.forEach(doc => {
+                    const p = doc.data();
+                    if(p.isAdminPost) {
+                        hasAdminPost = true;
+                        let comHTML = '';
+                        if(p.comments && p.comments.length > 0) { p.comments.forEach(c => { comHTML += `<div style="background:#f1f5f9; padding:8px 12px; border-radius:8px; margin-top:8px; font-size:0.9rem;"><strong>${c.authorName}:</strong> ${c.text}</div>`; }); }
+                        box.innerHTML += `
+                            <div class="card" style="border-left: 4px solid var(--danger); margin-bottom: 15px; padding: 15px;">
+                                <div style="display:flex; justify-content:space-between;">
+                                    <div><strong style="color:var(--primary);">${p.authorName}</strong> <span style="font-size:0.8rem; color:gray;">(${p.timeString})</span></div>
+                                    <button class="btn btn-danger" style="padding:5px 10px; font-size:0.8rem;" onclick="deleteNews('${doc.id}')">🗑️ Delete</button>
+                                </div>
+                                <div style="margin-top:5px; font-weight:bold;">${p.headline || p.details || 'সাকসেস বোর্ড / ছবি'}</div>
+                                <div style="margin-top: 15px; border-top:1px dashed #cbd5e1; padding-top:10px;"><h4 style="font-size:0.9rem; color:#475569;">💬 কমেন্টস:</h4>${comHTML || '<span style="font-size:0.8rem; color:gray;">কোনো কমেন্ট নেই</span>'}</div>
+                            </div>`;
+                    }
+                });
+                if(!hasAdminPost) box.innerHTML = '<p style="text-align:center; color:gray;">কোনো নিউজ নেই।</p>';
+            });
+        }
+        function deleteNews(id) { if(confirm('সত্যিই নিউজটি ডিলিট করবেন?')) db.collection("news").doc(id).delete(); }
+
+        // ================= 5. Details Page Edit =================
+        function loadDetails() { db.collection("admin_settings").doc("detailsConfig").onSnapshot(d => { if(d.exists) { const v=d.data(); document.getElementById('d-not').value=v.notice||''; document.getElementById('d-bac').value=v.bachelors||''; document.getElementById('d-mas').value=v.masters||''; document.getElementById('d-sch').value=v.scholarship||''; document.getElementById('d-fb').value=v.fbLink||''; document.getElementById('d-em').value=v.email||''; document.getElementById('d-cop').value=v.copyright||''; document.getElementById('d-add').value=v.address||''; } }); }
+        function saveDetails() { const b = document.getElementById('btn-save-det'); db.collection("admin_settings").doc("detailsConfig").set({ notice:document.getElementById('d-not').value, bachelors:document.getElementById('d-bac').value, masters:document.getElementById('d-mas').value, scholarship:document.getElementById('d-sch').value, fbLink:document.getElementById('d-fb').value, email:document.getElementById('d-em').value, copyright:document.getElementById('d-cop').value, address:document.getElementById('d-add').value }); b.innerText="✅ সেভ হয়েছে!"; b.style.background="var(--success)"; setTimeout(()=>{b.innerText="💾 আপডেট সেভ করুন";b.style.background="var(--success)";},2000); }
+
+        window.onload = () => { addStd(); addStd(); addStd(); showHome(); };
+    </script>
+</body>
+</html>
